@@ -54,6 +54,7 @@ allowed_sources:
   - InvestorPlace
   - StreetInsider
   - TradingView
+  - Stock Titan
 
 # Primary source: Finnhub company news (real-time, ticker-based, free tier).
 finnhub:
