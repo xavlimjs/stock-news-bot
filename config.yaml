@@ -23,6 +23,7 @@ allowed_sources:
   - wall street journal
   - marketwatch
   - yahoo
+  - yahoo finance
   - seeking alpha
   - motley fool
   - forbes
@@ -37,6 +38,12 @@ allowed_sources:
   - zacks
   - benzinga
   - investing.com
+  - tipranks
+  - simply wall st
+  - barchart
+  - stocktwits
+  - nasdaq
+  - marketbeat
 
 # Primary source: Finnhub company news (real-time, ticker-based, free tier).
 finnhub:

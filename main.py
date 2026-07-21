@@ -28,22 +28,20 @@ def poll_once(config: Config, store: SeenStore):
     except Exception:
         log.error("NewsAPI fetch failed:\n%s", traceback.format_exc())
 
-    new_count = 0
-    for article in all_articles:
-        if not store.is_new(article["id"]):
-            continue
-        try:
-            telegram_notifier.send_alert(config, article)
-            store.mark_seen(article["id"])
-            new_count += 1
-            log.info("Alerted: [%s] %s", article["symbol"], article["headline"])
-        except Exception:
-            log.error("Failed to send alert for %s:\n%s", article["id"], traceback.format_exc())
+    new_articles = [a for a in all_articles if store.is_new(a["id"])]
 
-    if new_count == 0:
+    if not new_articles:
         log.info("No new relevant articles this poll.")
-    else:
-        log.info("Sent %d new alert(s).", new_count)
+        return
+
+    try:
+        telegram_notifier.send_digest(config, new_articles)
+        for article in new_articles:
+            store.mark_seen(article["id"])
+        log.info("Sent digest with %d new article(s).", len(new_articles))
+    except Exception:
+        log.error("Failed to send digest:\n%s", traceback.format_exc())
+        # Articles are NOT marked seen here, so they'll be retried next poll.
 
 
 def main():
