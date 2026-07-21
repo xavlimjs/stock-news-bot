@@ -53,6 +53,7 @@ allowed_sources:
   - Proactive Investors
   - InvestorPlace
   - StreetInsider
+  - TradingView
 
 # Primary source: Finnhub company news (real-time, ticker-based, free tier).
 finnhub:
