@@ -44,6 +44,7 @@ allowed_sources:
   - stocktwits
   - nasdaq
   - marketbeat
+  - Dow Jones
 
 # Primary source: Finnhub company news (real-time, ticker-based, free tier).
 finnhub:
