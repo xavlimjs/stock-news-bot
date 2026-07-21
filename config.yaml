@@ -45,6 +45,14 @@ allowed_sources:
   - nasdaq
   - marketbeat
   - Dow Jones
+  - GlobeNewswire
+  - PRNewswire
+  - BusinessWire
+  - AccessWire
+  - Newsfile
+  - Proactive Investors
+  - InvestorPlace
+  - StreetInsider
 
 # Primary source: Finnhub company news (real-time, ticker-based, free tier).
 finnhub:
