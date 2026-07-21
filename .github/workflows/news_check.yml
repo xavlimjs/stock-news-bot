@@ -2,30 +2,40 @@ name: Stock News Check
 
 on:
   schedule:
-    # Runs every 30 minutes. GitHub may delay this slightly under load -
-    # treat it as "roughly every 30 min", not exact.
-    - cron: "*/30 * * * *"
-  workflow_dispatch: {}  # lets you trigger a run manually from the Actions tab
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write  # needed so the workflow can commit the updated dedup file back
+  contents: read
+  actions: write   # required so this workflow can delete its own old cache entries
 
 jobs:
   check-news:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repo
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.11'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run news check
+      # Pull the most recent seen_articles.db from a previous run.
+      # The exact key (with this run's id) never hits on restore, so it
+      # always falls back to the newest cache matching the prefix.
+      - name: Restore dedup cache
+        uses: actions/cache/restore@v4
+        with:
+          path: seen_articles.db
+          key: seen-articles-${{ github.run_id }}
+          restore-keys: |
+            seen-articles-
+
+      - name: Run poll
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           NEWSAPI_API_KEY: ${{ secrets.NEWSAPI_API_KEY }}
@@ -33,10 +43,22 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python run_once.py
 
-      - name: Commit updated dedup store
+      # Save this run's updated db under a fresh, unique key
+      # (cache entries can't be overwritten once created).
+      - name: Save dedup cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: seen_articles.db
+          key: seen-articles-${{ github.run_id }}
+
+      # Without this, every run leaves a new cache entry behind and they
+      # pile up indefinitely (10GB repo cache cap). Keep only the latest.
+      - name: Clean up old cache entries
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "stock-news-bot"
-          git config user.email "actions@github.com"
-          git add seen_articles.db
-          git diff --staged --quiet || git commit -m "Update seen articles [skip ci]"
-          git push
+          gh cache list --key seen-articles- --json id,key --jq \
+            '.[] | select(.key != "seen-articles-${{ github.run_id }}") | .id' \
+            | xargs -r -n1 gh cache delete
