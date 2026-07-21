@@ -1,0 +1,56 @@
+# List the tickers you want news alerts for.
+# "name" is used as a secondary keyword match for sources (like NewsAPI)
+# that search by text rather than by ticker.
+tickers:
+  - symbol: AMZN
+    name: Amazon
+  - symbol: COHR
+    name: Coherent
+  - symbol: GRRR
+    name: Gorilla Technology
+  - symbol: NFLX
+    name: Netflix
+
+# How often to poll for new articles, in minutes.
+poll_interval_minutes: 30
+
+# Only alert on articles whose source name contains one of these strings
+# (case-insensitive substring match). Leave empty [] to allow all sources.
+allowed_sources:
+  - cnbc
+  - bloomberg
+  - reuters
+  - wall street journal
+  - marketwatch
+  - yahoo
+  - seeking alpha
+  - motley fool
+  - forbes
+  - business insider
+  - barron
+  - thestreet
+  - businesswire
+  - prnewswire
+  - globenewswire
+  - accesswire
+  - newsfile
+  - zacks
+  - benzinga
+  - investing.com
+
+# Primary source: Finnhub company news (real-time, ticker-based, free tier).
+finnhub:
+  enabled: true
+  lookback_days: 1        # how far back to check on each poll
+
+# Secondary source: NewsAPI domain search (optional, free tier is ~24h delayed).
+newsapi:
+  enabled: false
+  domains:
+    - cnbc.com
+    - bloomberg.com
+    - reuters.com
+  lookback_hours: 24
+
+# Where article IDs already alerted on are stored, to avoid duplicate pings.
+dedup_db_path: seen_articles.db
