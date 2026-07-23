@@ -26,11 +26,10 @@ def _send_raw(config, text: str):
 
 def send_digest(config, articles: list):
     """
-    Groups articles by ticker symbol and sends one (or more, if long)
-    organized digest message(s) instead of one message per article.
-    Tickers with no new articles this poll are still listed, so the
-    digest always reflects every tracked ticker, not just the ones with news.
-    Sends every poll, even when there are zero new articles across all tickers.
+    Groups articles by ticker symbol and sends one separate message per
+    ticker (split further into multiple messages if a ticker's own articles
+    exceed Telegram's length limit). Tickers with no new articles still get
+    their own message. Sends every poll, even with zero new articles total.
     """
     by_symbol = defaultdict(list)
     for a in articles:
@@ -51,65 +50,52 @@ def _build_digest_chunks(by_symbol: dict, all_symbols: list) -> list:
     symbols_without_articles = sorted(s for s in all_symbols if not by_symbol.get(s))
     ordered_symbols = symbols_with_articles + symbols_without_articles
 
-    # --- Pass 1: lay out chunks using a conservative reserved width for the
-    # page suffix (" - 99/99"), so real page numbers always fit afterward. ---
+    # --- Pass 1: each symbol gets its own list of one-or-more chunks. ---
+    # raw_chunks: list of (symbol, count, entries_list) — one entry per chunk.
     raw_chunks = []
-    current_chunk = []
-    current_len = len(header)
 
     for symbol in ordered_symbols:
         articles = by_symbol.get(symbol, [])
         count = len(articles)
         reserved_header = f"\n<b>${escape(symbol)}</b> ({count}){PAGE_SUFFIX_RESERVE}"
 
-        if current_len + len(reserved_header) > MAX_MESSAGE_LENGTH and current_chunk:
-            raw_chunks.append(current_chunk)
-            current_chunk = []
-            current_len = len(header)
-
-        current_chunk.append({"symbol": symbol, "count": count, "entries": []})
-        current_len += len(reserved_header)
+        entries = []
+        current_len = len(header) + len(reserved_header)
 
         if count == 0:
-            empty_line = "\n  No new articles."
-            current_chunk[-1]["entries"].append(empty_line)
-            current_len += len(empty_line)
+            entries.append("\n  No new articles.")
+            raw_chunks.append((symbol, count, entries))
             continue
 
         for a in articles:
             entry = _format_article(a)
-            if current_len + len(entry) > MAX_MESSAGE_LENGTH and current_chunk:
-                raw_chunks.append(current_chunk)
-                current_chunk = []
-                current_len = len(header)
-                current_chunk.append({"symbol": symbol, "count": count, "entries": []})
-                current_len += len(reserved_header)
-            current_chunk[-1]["entries"].append(entry)
+            if current_len + len(entry) > MAX_MESSAGE_LENGTH and entries:
+                raw_chunks.append((symbol, count, entries))
+                entries = []
+                current_len = len(header) + len(reserved_header)
+            entries.append(entry)
             current_len += len(entry)
 
-    if current_chunk:
-        raw_chunks.append(current_chunk)
+        if entries:
+            raw_chunks.append((symbol, count, entries))
 
     # --- Determine total pages per symbol (how many chunks it appears in) ---
     page_counts = {}
-    for chunk in raw_chunks:
-        for sec in chunk:
-            page_counts[sec["symbol"]] = page_counts.get(sec["symbol"], 0) + 1
+    for symbol, _, _ in raw_chunks:
+        page_counts[symbol] = page_counts.get(symbol, 0) + 1
 
-    # --- Pass 2: rebuild final text using real page numbers ---
+    # --- Pass 2: rebuild final text per chunk using real page numbers ---
     seen_so_far = {}
     final_chunks = []
-    for chunk in raw_chunks:
-        text = header
-        for sec in chunk:
-            symbol = sec["symbol"]
-            seen_so_far[symbol] = seen_so_far.get(symbol, 0) + 1
-            page = seen_so_far[symbol]
-            total_pages = page_counts[symbol]
-            suffix = f" - {page}/{total_pages}" if total_pages > 1 else ""
-            text += f"\n<b>${escape(symbol)}</b> ({sec['count']}){suffix}"
-            for entry in sec["entries"]:
-                text += entry
+    for symbol, count, entries in raw_chunks:
+        seen_so_far[symbol] = seen_so_far.get(symbol, 0) + 1
+        page = seen_so_far[symbol]
+        total_pages = page_counts[symbol]
+        suffix = f" - {page}/{total_pages}" if total_pages > 1 else ""
+
+        text = header + f"\n<b>${escape(symbol)}</b> ({count}){suffix}"
+        for entry in entries:
+            text += entry
         final_chunks.append(text.rstrip())
 
     return final_chunks
