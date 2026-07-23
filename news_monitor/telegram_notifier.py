@@ -28,22 +28,28 @@ def send_digest(config, articles: list):
     """
     Groups articles by ticker symbol and sends one (or more, if long)
     organized digest message(s) instead of one message per article.
+    Tickers with no new articles this poll are still listed, so the
+    digest always reflects every tracked ticker, not just the ones with news.
+    Sends every poll, even when there are zero new articles across all tickers.
     """
-    if not articles:
-        return
-
     by_symbol = defaultdict(list)
     for a in articles:
         by_symbol[a["symbol"]].append(a)
 
-    chunks = _build_digest_chunks(by_symbol)
+    all_symbols = [t["symbol"] for t in config.tickers]
+    chunks = _build_digest_chunks(by_symbol, all_symbols)
     for chunk in chunks:
         _send_raw(config, chunk)
 
 
-def _build_digest_chunks(by_symbol: dict) -> list:
+def _build_digest_chunks(by_symbol: dict, all_symbols: list) -> list:
     total_count = sum(len(v) for v in by_symbol.values())
     header = f"<b>📰 Stock News Update</b> — {total_count} new article(s)\n"
+
+    # Tickers with articles first (sorted), then empty tickers appended after
+    symbols_with_articles = sorted(s for s in all_symbols if by_symbol.get(s))
+    symbols_without_articles = sorted(s for s in all_symbols if not by_symbol.get(s))
+    ordered_symbols = symbols_with_articles + symbols_without_articles
 
     # --- Pass 1: lay out chunks using a conservative reserved width for the
     # page suffix (" - 99/99"), so real page numbers always fit afterward. ---
@@ -51,8 +57,8 @@ def _build_digest_chunks(by_symbol: dict) -> list:
     current_chunk = []
     current_len = len(header)
 
-    for symbol in sorted(by_symbol.keys()):
-        articles = by_symbol[symbol]
+    for symbol in ordered_symbols:
+        articles = by_symbol.get(symbol, [])
         count = len(articles)
         reserved_header = f"\n<b>${escape(symbol)}</b> ({count}){PAGE_SUFFIX_RESERVE}"
 
@@ -63,6 +69,12 @@ def _build_digest_chunks(by_symbol: dict) -> list:
 
         current_chunk.append({"symbol": symbol, "count": count, "entries": []})
         current_len += len(reserved_header)
+
+        if count == 0:
+            empty_line = "\n  No new articles."
+            current_chunk[-1]["entries"].append(empty_line)
+            current_len += len(empty_line)
+            continue
 
         for a in articles:
             entry = _format_article(a)

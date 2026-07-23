@@ -30,15 +30,14 @@ def poll_once(config: Config, store: SeenStore):
 
     new_articles = [a for a in all_articles if store.is_new(a["id"])]
 
-    if not new_articles:
-        log.info("No new relevant articles this poll.")
-        return
-
     try:
         telegram_notifier.send_digest(config, new_articles)
         for article in new_articles:
             store.mark_seen(article["id"])
-        log.info("Sent digest with %d new article(s).", len(new_articles))
+        if new_articles:
+            log.info("Sent digest with %d new article(s).", len(new_articles))
+        else:
+            log.info("Sent digest with no new articles this poll.")
     except Exception:
         log.error("Failed to send digest:\n%s", traceback.format_exc())
         # Articles are NOT marked seen here, so they'll be retried next poll.
