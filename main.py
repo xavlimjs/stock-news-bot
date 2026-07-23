@@ -16,6 +16,8 @@ log = logging.getLogger("stock_news_bot")
 
 
 def poll_once(config: Config, store: SeenStore):
+    store.prune_old(days=3)
+
     all_articles = []
 
     try:
