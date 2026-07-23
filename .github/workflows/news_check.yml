@@ -1,13 +1,10 @@
 name: Stock News Check
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: write   # required so this workflow can delete its own old cache entries
 
 jobs:
   check-news:
@@ -24,41 +21,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # Pull the most recent seen_articles.db from a previous run.
-      # The exact key (with this run's id) never hits on restore, so it
-      # always falls back to the newest cache matching the prefix.
-      - name: Restore dedup cache
-        uses: actions/cache/restore@v4
-        with:
-          path: seen_articles.db
-          key: seen-articles-${{ github.run_id }}
-          restore-keys: |
-            seen-articles-
-
       - name: Run poll
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           NEWSAPI_API_KEY: ${{ secrets.NEWSAPI_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_FILENAME: ${{ secrets.GIST_FILENAME }}
         run: python run_once.py
-
-      # Save this run's updated db under a fresh, unique key
-      # (cache entries can't be overwritten once created).
-      - name: Save dedup cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: seen_articles.db
-          key: seen-articles-${{ github.run_id }}
-
-      # Without this, every run leaves a new cache entry behind and they
-      # pile up indefinitely (10GB repo cache cap). Keep only the latest.
-      - name: Clean up old cache entries
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh cache list --key seen-articles- --json id,key --jq \
-            '.[] | select(.key != "seen-articles-${{ github.run_id }}") | .id' \
-            | xargs -r -n1 gh cache delete

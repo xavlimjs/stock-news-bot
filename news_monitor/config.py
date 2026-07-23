@@ -29,6 +29,11 @@ class Config:
         self.telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         self.telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
 
+        # Gist-based dedup persistence
+        self.gist_token = os.getenv("GIST_TOKEN", "")
+        self.gist_id = os.getenv("GIST_ID", "")
+        self.gist_filename = os.getenv("GIST_FILENAME", "seen_articles.db.b64")
+
     def source_allowed(self, source_name: str) -> bool:
         """If allowed_sources is empty, allow everything. Otherwise substring match."""
         if not self.allowed_sources:

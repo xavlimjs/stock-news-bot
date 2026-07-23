@@ -12,49 +12,11 @@ tickers:
     name: Netflix
 
 # How often to poll for new articles, in minutes.
-poll_interval_minutes: 30
+poll_interval_minutes: 60
 
 # Only alert on articles whose source name contains one of these strings
 # (case-insensitive substring match). Leave empty [] to allow all sources.
-allowed_sources:
-  - cnbc
-  - bloomberg
-  - reuters
-  - wall street journal
-  - marketwatch
-  - yahoo
-  - yahoo finance
-  - seeking alpha
-  - motley fool
-  - forbes
-  - business insider
-  - barron
-  - thestreet
-  - businesswire
-  - prnewswire
-  - globenewswire
-  - accesswire
-  - newsfile
-  - zacks
-  - benzinga
-  - investing.com
-  - tipranks
-  - simply wall st
-  - barchart
-  - stocktwits
-  - nasdaq
-  - marketbeat
-  - Dow Jones
-  - GlobeNewswire
-  - PRNewswire
-  - BusinessWire
-  - AccessWire
-  - Newsfile
-  - Proactive Investors
-  - InvestorPlace
-  - StreetInsider
-  - TradingView
-  - Stock Titan
+allowed_sources: []
 
 # Primary source: Finnhub company news (real-time, ticker-based, free tier).
 finnhub:

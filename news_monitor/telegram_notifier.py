@@ -1,5 +1,6 @@
 import requests
 from collections import defaultdict
+from html import escape
 
 API_URL_TEMPLATE = "https://api.telegram.org/bot{token}/sendMessage"
 MAX_MESSAGE_LENGTH = 3800  # stay under Telegram's 4096 char limit with margin
@@ -43,32 +44,36 @@ def _build_digest_chunks(by_symbol: dict) -> list:
     total_count = sum(len(v) for v in by_symbol.values())
     header = f"<b>📰 Stock News Update</b> — {total_count} new article(s)\n"
 
-    sections = []
-    for symbol in sorted(by_symbol.keys()):
-        section = _format_ticker_section(symbol, by_symbol[symbol])
-        sections.append(section)
-
-    # Pack sections into chunks that stay under Telegram's length limit
     chunks = []
     current = header
-    for section in sections:
-        if len(current) + len(section) > MAX_MESSAGE_LENGTH and current != header:
+
+    for symbol in sorted(by_symbol.keys()):
+        articles = by_symbol[symbol]
+        section_header = f"\n<b>${escape(symbol)}</b> ({len(articles)})"
+
+        # Add section header, splitting first if it won't fit
+        if len(current) + len(section_header) > MAX_MESSAGE_LENGTH and current != header:
             chunks.append(current.rstrip())
-            current = header  # repeat header on continuation messages
-        current += "\n" + section
+            current = header
+        current += section_header
+
+        for a in articles:
+            entry = _format_article(a)
+            if len(current) + len(entry) > MAX_MESSAGE_LENGTH and current != header:
+                chunks.append(current.rstrip())
+                current = header + section_header  # repeat symbol header on continuation
+            current += entry
+
     if current.strip():
         chunks.append(current.rstrip())
 
     return chunks
 
 
-def _format_ticker_section(symbol: str, articles: list) -> str:
-    lines = [f"\n<b>${symbol}</b> ({len(articles)})"]
-    for a in articles:
-        summary = (a.get("summary") or "")[:180]
-        summary_line = f"\n  {summary}" if summary else ""
-        lines.append(
-            f"• <i>{a['source']}</i> — {a['headline']}"
-            f"{summary_line}\n  {a['url']}"
-        )
-    return "\n".join(lines)
+def _format_article(a: dict) -> str:
+    summary = escape((a.get("summary") or "")[:180])
+    summary_line = f"\n  {summary}" if summary else ""
+    return (
+        f"\n• <i>{escape(a['source'])}</i> — {escape(a['headline'])}"
+        f"{summary_line}\n  {escape(a['url'])}"
+    )
