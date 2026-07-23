@@ -10,6 +10,8 @@ tickers:
     name: Gorilla Technology
   - symbol: NFLX
     name: Netflix
+  - symbol: FRSH
+    name: Freshworks Inc
 
 # How often to poll for new articles, in minutes.
 poll_interval_minutes: 60
