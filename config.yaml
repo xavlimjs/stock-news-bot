@@ -4,14 +4,14 @@
 tickers:
   - symbol: AMZN
     name: Amazon
-  - symbol: COHR
-    name: Coherent
+  - symbol: GOOG
+    name: Google
   - symbol: GRRR
     name: Gorilla Technology
   - symbol: NFLX
     name: Netflix
-  - symbol: FRSH
-    name: Freshworks Inc
+  - symbol: NOW
+    name: ServiceNow
 
 # How often to poll for new articles, in minutes.
 poll_interval_minutes: 60
