@@ -6,8 +6,8 @@ tickers:
     name: Amazon
   - symbol: GOOG
     name: Google
-  - symbol: GRRR
-    name: Gorilla Technology
+  - symbol: COHR
+    name: Coherent Corp
   - symbol: NFLX
     name: Netflix
   - symbol: NOW
